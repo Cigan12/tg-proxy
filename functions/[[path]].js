@@ -1,9 +1,10 @@
 // A private Telegram Bot API relay. Never log request URLs or payloads.
 export async function onRequest({ request, env }) {
   const secret = env.PROXY_SECRET;
-  if (typeof secret !== 'string' || !/^[A-Za-z0-9_-]{32,128}$/.test(secret)) {
-    return new Response('Relay is not configured', { status: 503 });
-  }
+  if (typeof secret !== 'string' || secret.length === 0)
+    return new Response('Relay secret is missing', { status: 503, headers: { 'Cache-Control': 'no-store' } });
+  if (!/^[A-Za-z0-9_-]{32,128}$/.test(secret))
+    return new Response('Relay secret has invalid format', { status: 503, headers: { 'Cache-Control': 'no-store' } });
   const incoming = new URL(request.url);
   const prefix = `/${secret}/`;
   if (!incoming.pathname.startsWith(prefix)) return new Response('Not found', { status: 404 });

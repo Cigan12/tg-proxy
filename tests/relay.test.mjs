@@ -10,7 +10,12 @@ const request = (path, init) => new Request(`https://relay.example/${path}`, ini
 test('fails closed for missing secret, wrong secret, malformed paths and methods', async () => {
   let called = false;
   globalThis.fetch = async () => { called = true; throw new Error('unexpected'); };
-  assert.equal((await onRequest({ request: request('x'), env: {} })).status, 503);
+  const missing = await onRequest({ request: request('x'), env: {} });
+  assert.equal(missing.status, 503);
+  assert.equal(await missing.text(), 'Relay secret is missing');
+  const invalid = await onRequest({ request: request('x'), env: { PROXY_SECRET: 'short' } });
+  assert.equal(invalid.status, 503);
+  assert.equal(await invalid.text(), 'Relay secret has invalid format');
   assert.equal((await onRequest({ request: request('wrong/bot1:abc/getMe'), env: { PROXY_SECRET: secret } })).status, 404);
   assert.equal((await onRequest({ request: request(`${secret}/https://evil.test/`), env: { PROXY_SECRET: secret } })).status, 404);
   assert.equal((await onRequest({ request: request(`${secret}/bot1:abc/getMe`, { method: 'DELETE' }), env: { PROXY_SECRET: secret } })).status, 405);
